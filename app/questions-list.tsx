@@ -9,6 +9,11 @@ type Question = {
   author: string | null;
   category?: string;
   votes: number;
+  poll_options?: {
+    id: string;
+    option_text: string;
+    votes: number;
+  }[];
 };
 
 export default function QuestionsList({
@@ -20,6 +25,8 @@ export default function QuestionsList({
 }) {
   const [questions, setQuestions] = useState(initialQuestions);
   const [draft, setDraft] = useState("");
+  const [optionA, setOptionA] = useState("");
+const [optionB, setOptionB] = useState("");
   const [category, setCategory] = useState("General");
   const [query, setQuery] = useState("");
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -48,32 +55,44 @@ export default function QuestionsList({
   }, [query]);
 
   async function submit() {
-    if (!draft.trim()) return;
-
-    const res = await fetch("/api/questions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-  body: draft,
-  category,
-}),
-    });
-
-    const created = await res.json();
-
-    setQuestions((qs) => [
-      {
-        ...created,
-        votes: 0,
-      },
-      ...qs,
-    ]);
-
-    setDraft("");
+  if (
+    !draft.trim() ||
+    !optionA.trim() ||
+    !optionB.trim()
+  ) {
+    alert("Please fill all fields");
+    return;
   }
 
+  const res = await fetch("/api/questions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      body: draft,
+      category,
+      options: [
+        optionA,
+        optionB,
+      ],
+    }),
+  });
+
+  const created = await res.json();
+
+  setQuestions((qs) => [
+    {
+      ...created,
+      votes: 0,
+    },
+    ...qs,
+  ]);
+
+  setDraft("");
+  setOptionA("");
+  setOptionB("");
+}
   async function upvote(id: string) {
     setQuestions((qs) =>
       qs.map((q) =>
@@ -156,6 +175,19 @@ export default function QuestionsList({
           placeholder="Enter Poll Question"
           className="rounded-md border px-3 py-2"
         />
+        <input
+  value={optionA}
+  onChange={(e) => setOptionA(e.target.value)}
+  placeholder="Option A"
+  className="rounded-md border px-3 py-2"
+/>
+
+<input
+  value={optionB}
+  onChange={(e) => setOptionB(e.target.value)}
+  placeholder="Option B"
+  className="rounded-md border px-3 py-2"
+/>
 
         <button
           onClick={submit}
@@ -184,32 +216,49 @@ export default function QuestionsList({
 </select>
 
       <ul className="space-y-3">
-        {questions.map((q) => (
-          <li
-            key={q.id}
-            className="card p-5 shadow-lg hover:scale-[1.02] transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-  <span className="font-medium">
-    {q.body}
-  </span>
+  {questions.map((q) => (
+    <li
+      key={q.id}
+      className="card p-5 shadow-lg"
+    >
+      <h3 className="font-bold text-lg mb-2">
+        {q.body}
+      </h3>
 
-  <p className="text-xs text-blue-600">
-    {q.category || "General"}
-  </p>
-</div>
+      <p className="text-xs text-blue-600 mb-3">
+        {q.category || "General"}
+      </p>
 
-              <button
-                onClick={() => upvote(q.id)}
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white transition"
-              >
-                Vote ({q.votes})
-              </button>
+      {q.poll_options?.length ? (
+        <div className="space-y-2">
+          {q.poll_options.map((option) => (
+            <div
+              key={option.id}
+              className="flex items-center justify-between border rounded-lg p-2"
+            >
+              <span>{option.option_text}</span>
+
+              <span className="text-sm text-gray-500">
+                {option.votes} votes
+              </span>
             </div>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500">
+          No options found
+        </p>
+      )}
+
+      <button
+        onClick={() => upvote(q.id)}
+        className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white"
+      >
+        Total Votes ({q.votes})
+      </button>
+    </li>
+  ))}
+</ul>
 
       {hasMore && (
         <button

@@ -18,7 +18,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { body, author, category } = await req.json();
+  const {
+  body,
+  author,
+  category,
+  options,
+} = await req.json();
 
 const { data, error } = await supabase
   .from("questions")
@@ -30,6 +35,25 @@ const { data, error } = await supabase
   .select()
   .single();
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json(data);
+ if (error) {
+  return Response.json(
+    { error: error.message },
+    { status: 500 }
+  );
+}
+
+if (options?.length) {
+  const pollOptions = options.map(
+    (option: string) => ({
+      poll_id: data.id,
+      option_text: option,
+    })
+  );
+
+  await supabase
+    .from("poll_options")
+    .insert(pollOptions);
+}
+
+return Response.json(data);
 }
