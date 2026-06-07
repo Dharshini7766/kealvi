@@ -9,51 +9,91 @@ export async function GET(req: Request) {
 
   if (q) {
     const questions = await searchQuestions(q, PAGE_SIZE);
-    return Response.json({ questions, hasMore: false });
+    return Response.json({
+      questions,
+      hasMore: false,
+    });
   }
 
-  const offset = Number(searchParams.get("offset") ?? 0);
-  const { questions, hasMore } = await getQuestionsPage(offset, PAGE_SIZE);
-  return Response.json({ questions, hasMore });
+  const offset = Number(
+    searchParams.get("offset") ?? 0
+  );
+
+  const { questions, hasMore } =
+    await getQuestionsPage(
+      offset,
+      PAGE_SIZE
+    );
+
+  return Response.json({
+    questions,
+    hasMore,
+  });
 }
 
 export async function POST(req: Request) {
-  const {
-  body,
-  author,
-  category,
-  options,
-} = await req.json();
+  try {
+    const {
+      body,
+      author,
+      category,
+      options,
+    } = await req.json();
 
-const { data, error } = await supabase
-  .from("questions")
-  .insert({
-    body,
-    author,
-    category,
-  })
-  .select()
-  .single();
+    const { data: question, error } =
+      await supabase
+        .from("questions")
+        .insert({
+          body,
+          author,
+          category,
+        })
+        .select()
+        .single();
 
- if (error) {
-  return Response.json(
-    { error: error.message },
-    { status: 500 }
-  );
-}
+    if (error) {
+      console.error(error);
 
-if (options?.length) {
-  const pollOptions = options.map(
-    (option: string) => ({
-      poll_id: data.id,
-      option_text: option,
-    })
-  );
+      return Response.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
 
-  await supabase
-    .from("poll_options")
-    .insert(pollOptions);
-}
+    if (
+      options &&
+      Array.isArray(options) &&
+      options.length > 0
+    ) {
+      const pollOptions = options.map(
+        (option: string) => ({
+          poll_id: question.id,
+          option_text: option,
+          votes: 0,
+        })
+      );
 
-return Response.json(data);
+      const {
+        error: optionError,
+      } = await supabase
+        .from("poll_options")
+        .insert(pollOptions);
+
+      if (optionError) {
+        console.error(
+          "OPTION ERROR:",
+          optionError
+        );
+      }
+    }
+
+    return Response.json(question);
+  } catch (err) {
+    console.error(err);
+
+    return Response.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
+  }
 }

@@ -22,6 +22,11 @@ export async function getQuestionsPage(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit);
 
+  console.log(
+    "QUESTIONS DATA:",
+    JSON.stringify(data, null, 2)
+  );
+
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []).map((q: any) => ({
@@ -65,6 +70,11 @@ export async function searchQuestions(
       config: "english",
     })
     .limit(limit);
+
+  console.log(
+    "SEARCH DATA:",
+    JSON.stringify(data, null, 2)
+  );
 
   if (error) throw new Error(error.message);
 
