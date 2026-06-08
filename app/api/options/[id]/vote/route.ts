@@ -7,11 +7,16 @@ export async function POST(
   try {
     const { id } = await params;
 
+    console.log("Voting for option:", id);
+
     const { data, error } = await supabase
       .from("poll_options")
       .select("votes")
       .eq("id", id)
       .single();
+
+    console.log("Current data:", data);
+    console.log("Current error:", error);
 
     if (error) {
       return Response.json(
@@ -20,17 +25,21 @@ export async function POST(
       );
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("poll_options")
       .update({
         votes: (data?.votes ?? 0) + 1,
       })
       .eq("id", id);
 
+    console.log("Update error:", updateError);
+
     return Response.json({
       success: true,
     });
   } catch (err) {
+    console.error(err);
+
     return Response.json(
       { error: "Server error" },
       { status: 500 }

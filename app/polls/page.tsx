@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import PollCard from "./PollCard";
 
+export const dynamic = "force-dynamic";
+
 export default async function PollsPage() {
   const { data: polls } = await supabase
     .from("questions")
@@ -13,7 +15,9 @@ export default async function PollsPage() {
       )
     `)
     .order("created_at", { ascending: false });
-
+console.log(
+  JSON.stringify(polls, null, 2)
+);
   return (
     <main className="mx-auto max-w-4xl p-6">
       <h1 className="text-4xl font-bold mb-6">
